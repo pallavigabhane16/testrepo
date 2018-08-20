@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:apikit="http://www.mulesoft.org/schema/mule/apikit" xmlns:file="http://www.mulesoft.org/schema/mule/file" xmlns:dw="http://www.mulesoft.org/schema/mule/ee/dw" xmlns:metadata="http://www.mulesoft.org/schema/mule/metadata" xmlns:mulexml="http://www.mulesoft.org/schema/mule/xml" xmlns:tracking="http://www.mulesoft.org/schema/mule/ee/tracking" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:spring="http://www.springframework.org/schema/beans" 
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/file http://www.mulesoft.org/schema/mule/file/current/mule-file.xsd
+http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/mule/ee/tracking/current/mule-tracking-ee.xsd
+http://www.mulesoft.org/schema/mule/ee/dw http://www.mulesoft.org/schema/mule/ee/dw/current/dw.xsd
+http://www.mulesoft.org/schema/mule/xml http://www.mulesoft.org/schema/mule/xml/current/mule-xml.xsd
+http://www.mulesoft.org/schema/mule/apikit http://www.mulesoft.org/schema/mule/apikit/current/mule-apikit.xsd">
+    <flow name="geFileFlow">
+        <file:inbound-endpoint path="C:\input" responseTimeout="10000" doc:name="readFile">
+            <file:filename-regex-filter pattern=".*xml" caseSensitive="false"/>
+        </file:inbound-endpoint>
+        <set-variable variableName="inputVar" value="#[payload]" doc:name="getRequest"/>
+        <logger message="#[message.inboundProperties.originalFilename] file has been received for processing" level="INFO" doc:name="Logger"/>
+        <dw:transform-message doc:name="Transform Message" metadata:id="2d7972f8-3104-4cbe-9724-8f231be345ce">
+            <dw:input-payload mimeType="application/xml"/>
+            <dw:set-payload><![CDATA[%dw 1.0
+%output application/xml
+---
+{
+	parent: {
+		a1: {
+			a21: payload.parent.a1.a21,
+			a31: payload.parent.a1.a31
+		},
+		a2: {
+			a22: payload.parent.a2.a32,
+			a32: payload.parent.a2.a22
+		},
+		a3: payload.parent.a3,
+		a4: payload.parent.a4,
+		a5: payload.parent.a5,
+		a6: payload.parent.a6
+	}
+}]]></dw:set-payload>
+        </dw:transform-message>
+        <dw:transform-message doc:name="Transform Message" metadata:id="f9f7331d-9d37-4814-865e-838d4b76d6e8">
+            <dw:set-payload><![CDATA[%dw 1.0
+%output application/xml
+---
+{
+}]]></dw:set-payload>
+        </dw:transform-message>
+        <properties-transformer doc:name="Property"/>
+        <set-payload doc:name="Set Payload"/>
+        <flow-ref name="file-demo-appFlow" doc:name="Flow Reference"/>
+        <file:outbound-endpoint path="C:\output" outputPattern="#[message.inboundProperties.originalFilename]" responseTimeout="10000" doc:name="File"/>
+    </flow>
+    <flow name="file-demo-appFlow">
+        <logger message="fsafre" level="INFO" doc:name="Logger"/>
+        <choice-exception-strategy doc:name="file-demo-appChoice_Exception_Strategy">
+            <catch-exception-strategy doc:name="Catch Exception Strategy"/>
+            <rollback-exception-strategy doc:name="Rollback Exception Strategy"/>
+        </choice-exception-strategy>
+    </flow>
+    <apikit:mapping-exception-strategy name="file-demo-appMapping_Exception_Strategy">
+        <apikit:mapping statusCode="600">
+            <apikit:exception value=""/>
+        </apikit:mapping>
+    </apikit:mapping-exception-strategy>
+</mule>
